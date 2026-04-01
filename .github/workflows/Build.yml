@@ -73,31 +73,27 @@ jobs:
           unzip magisk-loader/release/LSPosed-v*-Irena-debug.zip -d LSPosed-Irena-debug
 
       - name: Upload zygisk release
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskReleaseName }}
-          path: "./LSPosed-Irena-release/*"
+          path: "$GITHUB_WORKSPACE/LSPosed-Irena/LSPosed-Irena-release/*"
 
       - name: Upload zygisk debug
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskDebugName }}
-          path: "./LSPosed-Irena-debug/*"
+          path: "$GITHUB_WORKSPACE/LSPosed-Irena/LSPosed-Irena-debug/*"
 
       - name: Upload mappings
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
         uses: actions/upload-artifact@v4
         with:
           name: mappings
           path: |
-            magisk-loader/build/outputs/mapping
-            app/build/outputs/mapping
+            $GITHUB_WORKSPACE/LSPosed-Irena/magisk-loader/build/outputs/mapping
+            $GITHUB_WORKSPACE/LSPosed-Irena/app/build/outputs/mapping
 
       - name: Upload symbols
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
         uses: actions/upload-artifact@v4
         with:
           name: symbols
-          path: build/symbols
+          path: $GITHUB_WORKSPACE/LSPosed-Irena/build/symbols
