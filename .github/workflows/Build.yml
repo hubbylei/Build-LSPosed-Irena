@@ -59,10 +59,13 @@ jobs:
 
       - name: Build with Gradle
         working-directory: ./LSPosed-Irena
+        id: build
         run: |
           ./gradlew zipAll
+          echo "status=success" >> "$GITHUB_OUTPUT"
 
       - name: Prepare artifact
+        if: steps.build.outputs.status == 'success' && !cancelled()
         working-directory: ./LSPosed-Irena
         if: success()
         id: prepareArtifact
@@ -73,18 +76,21 @@ jobs:
           unzip magisk-loader/release/LSPosed-v*-Irena-debug.zip -d LSPosed-Irena-debug
 
       - name: Upload zygisk release
+        if: steps.build.outputs.status == 'success' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskReleaseName }}
           path: "./LSPosed-Irena/LSPosed-Irena-release/*"
 
       - name: Upload zygisk debug
+        if: steps.build.outputs.status == 'success' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskDebugName }}
           path: "./LSPosed-Irena/LSPosed-Irena-debug/*"
 
       - name: Upload mappings
+        if: steps.build.outputs.status == 'success' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: mappings
@@ -93,7 +99,39 @@ jobs:
             ./LSPosed-Irena/app/build/outputs/mapping
 
       - name: Upload symbols
+        if: steps.build.outputs.status == 'success' && !cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: symbols
           path: ./LSPosed-Irena/build/symbols
+
+      - name: Generate release tag
+        if: steps.build.outputs.status == 'success' && !cancelled()
+        id: tag
+        run: |
+          release_tag=$(echo ${{ steps.prepareArtifact.outputs.zygiskReleaseName }} | sed -r 's/LSPosed-v(.*)-Irena-release/\1/')
+          echo "![](https://img.shields.io/github/downloads/${{ github.repository }}/${release_tag}/total?style=flat-square)" > release.txt
+          echo "release_tag=${release_tag}" >> $GITHUB_OUTPUT
+
+      - name: Upload firmware to release
+        if: steps.build.outputs.status == 'success' && !cancelled()
+        uses: ncipollo/release-action@main
+        with:
+          tag: ${{ steps.tag.outputs.release_tag }}
+          bodyFile: release.txt
+          artifacts: ./LSPosed-Irena/magisk-loader/release/*.zip
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          retain_days: 0
+          keep_minimum_runs: 1
+
+      - name: Remove old Releases
+        if: steps.build.outputs.status == 'success' && !cancelled()
+        uses: dev-drprasad/delete-older-releases@master
+        with:
+          keep_latest: 48
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
