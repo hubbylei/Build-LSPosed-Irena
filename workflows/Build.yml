@@ -1,0 +1,103 @@
+name: Core
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 0 * * *
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      CCACHE_BASEDIR: "${{ github.workspace }}"
+    steps:
+      - name: Clone Code
+        run: git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena $GITHUB_WORKSPACE/LSPosed-Irena
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: 'false'
+          packages: ''
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+            max-size: 2G
+            key: ${{ runner.os }}
+            restore-keys: ${{ runner.os }}
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+        with:
+          version: 1.12.1
+
+      - name: Remove Android's cmake
+        shell: bash
+        run: rm -rf $ANDROID_HOME/cmake
+
+      - name: Configure Gradle properties
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        run: |
+          echo 'org.gradle.caching=true' >> ~/.gradle/gradle.properties
+          echo 'org.gradle.parallel=true' >> ~/.gradle/gradle.properties
+          echo 'org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 -XX:+UseParallelGC' >> ~/.gradle/gradle.properties
+          echo 'android.native.buildOutput=verbose' >> ~/.gradle/gradle.properties
+
+      - name: Build with Gradle
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        run: |
+          ./gradlew zipAll
+
+      - name: Prepare artifact
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        if: success()
+        id: prepareArtifact
+        run: |
+          zygiskReleaseName=`ls magisk-loader/release/LSPosed-v*-Irena-release.zip | awk -F '(/|.zip)' '{print $3}'` && echo "zygiskReleaseName=$zygiskReleaseName" >> $GITHUB_OUTPUT
+          zygiskDebugName=`ls magisk-loader/release/LSPosed-v*-Irena-debug.zip | awk -F '(/|.zip)' '{print $3}'` && echo "zygiskDebugName=$zygiskDebugName" >> $GITHUB_OUTPUT
+          unzip magisk-loader/release/LSPosed-v*-Irena-release.zip -d LSPosed-Irena-release
+          unzip magisk-loader/release/LSPosed-v*-Irena-debug.zip -d LSPosed-Irena-debug
+
+      - name: Upload zygisk release
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepareArtifact.outputs.zygiskReleaseName }}
+          path: "./LSPosed-Irena-release/*"
+
+      - name: Upload zygisk debug
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prepareArtifact.outputs.zygiskDebugName }}
+          path: "./LSPosed-Irena-debug/*"
+
+      - name: Upload mappings
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        uses: actions/upload-artifact@v4
+        with:
+          name: mappings
+          path: |
+            magisk-loader/build/outputs/mapping
+            app/build/outputs/mapping
+
+      - name: Upload symbols
+        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        uses: actions/upload-artifact@v4
+        with:
+          name: symbols
+          path: build/symbols
