@@ -16,7 +16,7 @@ jobs:
       CCACHE_BASEDIR: "${{ github.workspace }}"
     steps:
       - name: Clone Code
-        run: git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena $GITHUB_WORKSPACE/LSPosed-Irena
+        run: git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -50,7 +50,7 @@ jobs:
         run: rm -rf $ANDROID_HOME/cmake
 
       - name: Configure Gradle properties
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        working-directory: ./LSPosed-Irena
         run: |
           echo 'org.gradle.caching=true' >> ~/.gradle/gradle.properties
           echo 'org.gradle.parallel=true' >> ~/.gradle/gradle.properties
@@ -58,12 +58,12 @@ jobs:
           echo 'android.native.buildOutput=verbose' >> ~/.gradle/gradle.properties
 
       - name: Build with Gradle
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        working-directory: ./LSPosed-Irena
         run: |
           ./gradlew zipAll
 
       - name: Prepare artifact
-        working-directory: $GITHUB_WORKSPACE/LSPosed-Irena
+        working-directory: ./LSPosed-Irena
         if: success()
         id: prepareArtifact
         run: |
@@ -76,24 +76,24 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskReleaseName }}
-          path: "$GITHUB_WORKSPACE/LSPosed-Irena/LSPosed-Irena-release/*"
+          path: "./LSPosed-Irena/LSPosed-Irena-release/*"
 
       - name: Upload zygisk debug
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.zygiskDebugName }}
-          path: "$GITHUB_WORKSPACE/LSPosed-Irena/LSPosed-Irena-debug/*"
+          path: "./LSPosed-Irena/LSPosed-Irena-debug/*"
 
       - name: Upload mappings
         uses: actions/upload-artifact@v4
         with:
           name: mappings
           path: |
-            $GITHUB_WORKSPACE/LSPosed-Irena/magisk-loader/build/outputs/mapping
-            $GITHUB_WORKSPACE/LSPosed-Irena/app/build/outputs/mapping
+            ./LSPosed-Irena/magisk-loader/build/outputs/mapping
+            ./LSPosed-Irena/app/build/outputs/mapping
 
       - name: Upload symbols
         uses: actions/upload-artifact@v4
         with:
           name: symbols
-          path: $GITHUB_WORKSPACE/LSPosed-Irena/build/symbols
+          path: ./LSPosed-Irena/build/symbols
