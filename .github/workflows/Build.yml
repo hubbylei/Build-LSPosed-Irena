@@ -70,8 +70,8 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
             max-size: 2G
-            key: ${{ runner.os }}
-            restore-keys: ${{ runner.os }}
+            key: ${{ runner.os }}-${{ github.sha }}
+            restore-keys: ${{ runner.os }}-${{ github.sha }}
 
       - name: Setup Ninja
         if: steps.save.outputs.build == 'true'
