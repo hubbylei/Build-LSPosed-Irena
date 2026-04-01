@@ -67,7 +67,6 @@ jobs:
       - name: Prepare artifact
         if: steps.build.outputs.status == 'success' && !cancelled()
         working-directory: ./LSPosed-Irena
-        if: success()
         id: prepareArtifact
         run: |
           zygiskReleaseName=`ls magisk-loader/release/LSPosed-v*-Irena-release.zip | awk -F '(/|.zip)' '{print $3}'` && echo "zygiskReleaseName=$zygiskReleaseName" >> $GITHUB_OUTPUT
