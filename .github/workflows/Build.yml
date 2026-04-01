@@ -16,24 +16,57 @@ jobs:
       CCACHE_BASEDIR: "${{ github.workspace }}"
     steps:
       - name: Clone Code
-        run: git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
+        id: clone
+        run: |
+          git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
+          cd ./LSPosed-Irena
+          echo "commitHash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Compare Commit Hash
+        id: cacheHash
+        uses: actions/cache@v4
+        with:
+          path: commitHash
+          key: HEAD-${{ github.sha }}
+          restore-keys: HEAD-
+  
+      - name: Save New Commit Hash
+        id: save
+        run: |
+          if [ -f ${GITHUB_WORKSPACE}/commitHash ];then
+            cacheVer=$(cat ${GITHUB_WORKSPACE}/commitHash)
+          fi
+          getVer=${{ steps.clone.outputs.commitHash }}
+          echo "CacheVer: ${cacheVer}"
+          echo "getVer: ${getVer}"
+          if [ "${cacheVer}" == "${getVer}" ];then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo ${getVer} > ${GITHUB_WORKSPACE}/commitHash
+            touch ${GITHUB_WORKSPACE}/commitHash
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Java
+        if: steps.save.outputs.build == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
       - name: Setup Gradle
+        if: steps.save.outputs.build == 'true'
         uses: gradle/actions/setup-gradle@v4
 
       - name: Setup Android SDK
+        if: steps.save.outputs.build == 'true'
         uses: android-actions/setup-android@v3
         with:
           log-accepted-android-sdk-licenses: 'false'
           packages: ''
 
       - name: Setup ccache
+        if: steps.save.outputs.build == 'true'
         uses: hendrikmuhs/ccache-action@v1.2
         with:
             max-size: 2G
@@ -41,15 +74,18 @@ jobs:
             restore-keys: ${{ runner.os }}
 
       - name: Setup Ninja
+        if: steps.save.outputs.build == 'true'
         uses: seanmiddleditch/gha-setup-ninja@master
         with:
           version: 1.12.1
 
       - name: Remove Android's cmake
+        if: steps.save.outputs.build == 'true'
         shell: bash
         run: rm -rf $ANDROID_HOME/cmake
 
       - name: Configure Gradle properties
+        if: steps.save.outputs.build == 'true'
         working-directory: ./LSPosed-Irena
         run: |
           echo 'org.gradle.caching=true' >> ~/.gradle/gradle.properties
@@ -58,6 +94,7 @@ jobs:
           echo 'android.native.buildOutput=verbose' >> ~/.gradle/gradle.properties
 
       - name: Build with Gradle
+        if: steps.save.outputs.build == 'true'
         working-directory: ./LSPosed-Irena
         id: build
         run: |
@@ -112,7 +149,7 @@ jobs:
           echo "![](https://img.shields.io/github/downloads/${{ github.repository }}/${release_tag}/total?style=flat-square)" > release.txt
           echo "release_tag=${release_tag}" >> $GITHUB_OUTPUT
 
-      - name: Upload firmware to release
+      - name: Upload Release
         if: steps.build.outputs.status == 'success' && !cancelled()
         uses: ncipollo/release-action@main
         with:
@@ -124,7 +161,7 @@ jobs:
         uses: Mattraks/delete-workflow-runs@main
         with:
           retain_days: 0
-          keep_minimum_runs: 1
+          keep_minimum_runs: 4
 
       - name: Remove old Releases
         if: steps.build.outputs.status == 'success' && !cancelled()
