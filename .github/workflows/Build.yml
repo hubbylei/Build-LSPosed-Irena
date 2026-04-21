@@ -151,11 +151,11 @@ jobs:
 
       - name: Upload Release
         if: steps.build.outputs.status == 'success' && !cancelled()
-        uses: ncipollo/release-action@main
+        uses: softprops/action-gh-release@master
         with:
-          tag: ${{ steps.tag.outputs.release_tag }}
-          bodyFile: release.txt
-          artifacts: ./LSPosed-Irena/magisk-loader/release/*.zip
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          body_path: release.txt
+          files: ./LSPosed-Irena/magisk-loader/release/*.zip
 
       - name: Delete workflow runs
         uses: Mattraks/delete-workflow-runs@main
