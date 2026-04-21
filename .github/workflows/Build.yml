@@ -22,28 +22,22 @@ jobs:
           cd ./LSPosed-Irena
           echo "commitHash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Compare Commit Hash
-        id: cacheHash
-        uses: actions/cache@v4
-        with:
-          path: commitHash
-          key: HEAD-${{ github.sha }}
-          restore-keys: HEAD-
-  
-      - name: Save New Commit Hash
-        id: save
+      - name: Get Version
+        id: getversion
         run: |
-          if [ -f ${GITHUB_WORKSPACE}/commitHash ];then
-            cacheVer=$(cat ${GITHUB_WORKSPACE}/commitHash)
-          fi
+            Latest=$(curl -skL https://api.github.com/repos/hubbylei/Build-LSPosed-Irena/releases/latest | jq -r .tag_name | awk -F "-" '{print $2}')
+            echo "commitHash=${Latest}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare Version
+        id: compare
+        run: |
+          latestVer=${{ steps.getversion.outputs.commitHash }}
           getVer=${{ steps.clone.outputs.commitHash }}
-          echo "CacheVer: ${cacheVer}"
-          echo "getVer: ${getVer}"
-          if [ "${cacheVer}" == "${getVer}" ];then
+          echo "LatestVer: ${latestVer}"
+          echo "GetVer: ${getVer}"
+          if [ "${latestVer}" = "${getVer}" ];then
             echo "build=false" >> "$GITHUB_OUTPUT"
           else
-            echo ${getVer} > ${GITHUB_WORKSPACE}/commitHash
-            touch ${GITHUB_WORKSPACE}/commitHash
             echo "build=true" >> "$GITHUB_OUTPUT"
           fi
 
