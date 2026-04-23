@@ -20,7 +20,7 @@ jobs:
         run: |
           git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
           cd ./LSPosed-Irena
-          echo "commitHash=$(($(git rev-list --count HEAD) +4200))" >> "$GITHUB_OUTPUT"
+          echo "commitHash=$(($(git rev-list --count HEAD) + 4200))" >> "$GITHUB_OUTPUT"
 
       - name: Get Version
         id: getversion
