@@ -18,8 +18,11 @@ jobs:
       - name: Clone Code
         id: clone
         run: |
-          git clone --progress --filter=blob:none --recursive --shallow-submodules --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
+          git clone --progress --filter=blob:none --branch dev https://github.com/re-zero001/LSPosed-Irena ./LSPosed-Irena
           cd ./LSPosed-Irena
+          sed -i 's,github.com\/libxposed,github.com\/libxposed-merge,g' .gitmodules
+          git submodule init
+          git submodule update
           echo "commitHash=$(($(git rev-list --count HEAD) + 4200))" >> "$GITHUB_OUTPUT"
 
       - name: Get Version
